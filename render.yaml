@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: zephvion-voice-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      # Google Calendar — upload service-account.json as a Render Secret File
+      - key: GOOGLE_SERVICE_ACCOUNT_FILE
+        value: /etc/secrets/service-account.json
+      - key: GOOGLE_CALENDAR_ID
+        sync: false
+      - key: TIMEZONE
+        value: Asia/Kolkata
+      # Business identity and hours
+      - key: BUSINESS_NAME
+        value: Wellness Partners
+      - key: BUSINESS_START_HOUR
+        value: "9"
+      - key: BUSINESS_END_HOUR
+        value: "17"
+      - key: SATURDAY_END_HOUR
+        value: "12"
+      - key: BUSINESS_DAYS
+        value: "0,1,2,3,4,5"
+      # Optional integrations — set in the Render dashboard if used
+      - key: SLACK_WEBHOOK_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: SALES_TEAM_EMAIL
+        sync: false
+      - key: CRM_WEBHOOK_URL
+        sync: false
+      - key: AUTOMATION_WEBHOOK_URL
+        sync: false
+      - key: VAPI_API_KEY
+        sync: false
+      - key: VAPI_ASSISTANT_ID
+        sync: false
+      - key: VAPI_PHONE_NUMBER_ID
+        sync: false

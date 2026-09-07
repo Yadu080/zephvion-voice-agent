@@ -1,0 +1,52 @@
+[
+  {
+    "topic": "opening hours",
+    "keywords": ["hours", "open", "timing", "close", "closed", "when", "weekend", "saturday", "sunday"],
+    "answer": "Primary care is open Monday to Friday, 9 AM to 5 PM, and Saturday 9 AM to 12 PM. We're closed on Sundays. Specialist hours vary by department."
+  },
+  {
+    "topic": "location and parking",
+    "keywords": ["where", "location", "address", "parking", "directions", "reach", "situated"],
+    "answer": "We're located at the Wellness Partners clinic building, with free patient parking available on site. I can text or email you exact directions if that helps."
+  },
+  {
+    "topic": "insurance accepted",
+    "keywords": ["insurance", "covered", "coverage", "policy", "claim", "cashless"],
+    "answer": "We accept most major insurance plans. For specifics about your own coverage and any out-of-pocket costs, it's best to check with your insurance provider using the number on your card. Please bring your insurance card to your appointment."
+  },
+  {
+    "topic": "self pay pricing",
+    "keywords": ["cost", "price", "fee", "charges", "self pay", "without insurance", "how much"],
+    "answer": "For patients without insurance we offer self-pay rates, which vary by service type. Payment is collected at the time of service. I can have someone confirm the exact rate for the service you need."
+  },
+  {
+    "topic": "what to bring",
+    "keywords": ["bring", "carry", "documents", "id", "paperwork", "prepare", "preparation"],
+    "answer": "Please bring your insurance card, a photo ID, and a list of any medications you're currently taking. New patients should arrive 20 minutes early to complete paperwork; returning patients 15 minutes early."
+  },
+  {
+    "topic": "cancellation policy",
+    "keywords": ["cancel", "cancellation", "policy", "fee", "reschedule", "notice", "late"],
+    "answer": "We ask for at least 24 hours notice to cancel or reschedule, otherwise a $50 late cancellation fee applies. There's a 15-minute grace period for late arrivals before an appointment may need to be rescheduled."
+  },
+  {
+    "topic": "services offered",
+    "keywords": ["services", "offer", "treatment", "specialist", "departments", "therapy", "checkup", "physical"],
+    "answer": "We offer primary care (annual physicals, illness visits, follow-ups), specialist consultations, diagnostic services like lab work and imaging, wellness services including nutrition counselling, physical therapy and mental health, and same-day urgent care for non-emergency issues."
+  },
+  {
+    "topic": "appointment duration",
+    "keywords": ["how long", "duration", "take", "length", "time"],
+    "answer": "Primary care visits run 30 to 60 minutes, specialist consultations 45 to 60 minutes, diagnostic services vary from 15 to 90 minutes depending on the test, and urgent care visits are about 30 minutes."
+  },
+  {
+    "topic": "emergency guidance",
+    "keywords": ["emergency", "urgent", "severe", "chest pain", "bleeding", "ambulance", "serious"],
+    "answer": "If this is a medical emergency, please hang up and contact emergency services immediately, or go to the nearest emergency facility. For urgent but non-emergency issues, we keep same-day slots open."
+  },
+  {
+    "topic": "new patient registration",
+    "keywords": ["new patient", "first visit", "register", "registration", "sign up", "first time"],
+    "answer": "For your first visit, please arrive 20 minutes early to complete new patient forms, and bring your insurance card, photo ID, and medication list. First appointments are usually slightly longer than follow-up visits."
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc -t markdown \"Zephvion AI Voice Agent Portfolio.docx\")",
+      "Bash(cat /tmp/uvicorn_test.log)"
+    ]
+  }
+}
