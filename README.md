@@ -33,6 +33,11 @@ cp .env.example .env          # then fill it in
 uvicorn app.main:app --port 8000
 ```
 
+**Storage:** set `DATABASE_URL` to a Postgres connection string and records
+persist across restarts — necessary on hosts with an ephemeral filesystem, such
+as Render's free tier. Leave it blank and it uses a local SQLite file, so local
+development needs no database server.
+
 Full setup — Google Calendar, Vapi, deployment, notifications — is in
 **[HANDOVER.md](HANDOVER.md)**.
 
@@ -63,7 +68,7 @@ python3 setup_vapi_sip.py                # SIP address for testing
 app/
   main.py               Application entry point
   config.py             Settings, all from environment variables
-  database.py           SQLite storage and schema migrations
+  database.py           Storage (Postgres or SQLite) and schema migrations
   calendar_service.py   Google Calendar availability and events
   business_hours.py     Open/closed logic
   qualification.py      Lead scoring

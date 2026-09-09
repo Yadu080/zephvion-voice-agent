@@ -34,8 +34,9 @@ A complete AI voice agent that answers calls 24/7, books/reschedules/cancels app
 | Telephony | Vapi built-in number | Included free (US number) |
 | Calendar | Google Calendar API | Completely free |
 | Backend | Python + FastAPI | Open source |
-| Database | SQLite | Open source, no server needed |
-| Public tunnel (dev) | ngrok | Free tier |
+| Database | Postgres (Neon/Supabase), or SQLite locally | Both free |
+| Hosting | Render | Free tier |
+| Uptime + scheduling | cron-job.org | Free |
 | Team alerts | Slack incoming webhook | Free on any Slack workspace |
 | Email | Gmail SMTP | Free (500 emails/day) |
 | CRM | HubSpot free CRM or Google Sheets | Both genuinely free |
@@ -68,20 +69,34 @@ cp .env.example .env
 8. Same settings page → **Integrate calendar** → copy the **Calendar ID**.
 9. In `.env`, set `GOOGLE_CALENDAR_ID` to that value and `TIMEZONE` to your timezone.
 
-### 3.3 Run it
+### 3.3 Database
+
+Hosts with an ephemeral filesystem — Render's free tier included — wipe local
+files on every redeploy, so the records live in a hosted database instead.
+
+1. Sign up free at neon.tech (or supabase.com) and create a project
+2. Copy the connection string (`postgresql://user:password@host/dbname`)
+3. Set it as `DATABASE_URL` in `.env` and in your host's environment
+
+Tables are created automatically on first start. Left blank, it falls back to a
+local SQLite file — fine for development, but data won't survive a hosted redeploy.
+
+### 3.4 Deploy
+
+Push the repository to GitHub, then on render.com create a **Web Service** from
+it. `render.yaml` supplies the build and start commands; confirm the plan is
+**Free**. Add `service-account.json` as a **Secret File**, and set the
+environment variables from `.env.example`.
+
+Your public URL will look like `https://<your-app>.onrender.com` — that is the
+server URL used everywhere below.
+
+For local development instead:
 
 ```bash
 source .venv/bin/activate
 uvicorn app.main:app --port 8000
 ```
-
-In a second terminal:
-
-```bash
-ngrok http 8000
-```
-
-Copy the `https://....ngrok-free.app` URL — this is your public server URL.
 
 ---
 
@@ -101,7 +116,7 @@ Copy the `https://....ngrok-free.app` URL — this is your public server URL.
 
 ### 4.3 Tools (9 total)
 
-Tools → Create Tool, for each one below. Set **Type** = Function, **Server URL** = `https://<your-ngrok-url>/tools/webhook`, and increase the **timeout** in Advanced Settings to ~20 seconds (calendar calls need headroom).
+Tools → Create Tool, for each one below. Set **Type** = Function, **Server URL** = `https://<your-app>.onrender.com/tools/webhook`, and increase the **timeout** in Advanced Settings to ~20 seconds (calendar calls need headroom).
 
 | Function name | Parameters (required in **bold**) |
 |---|---|
@@ -119,6 +134,10 @@ All parameters are strings except `duration_minutes` (number).
 
 Then: Assistants → your assistant → **Tools** tab → add all 9 → Save.
 
+Faster alternative: `python3 setup_vapi_tools.py` creates or updates all nine
+via the API, and `python3 setup_vapi_assistant.py --apply` builds the assistant
+itself, including the multilingual configuration.
+
 ### 4.4 Live call transfer (escalation)
 
 1. Tools → Create Tool → select the **Transfer Call** tool type.
@@ -128,7 +147,7 @@ Then: Assistants → your assistant → **Tools** tab → add all 9 → Save.
 ### 4.5 Post-call summaries
 
 1. In the assistant settings, find **Server URL** (server messages/webhooks).
-2. Set it to `https://<your-ngrok-url>/webhooks/vapi`.
+2. Set it to `https://<your-app>.onrender.com/webhooks/vapi`.
 3. Enable the **end-of-call-report** server message.
 
 Every completed call will then be stored with its summary, transcript, duration and end reason.
@@ -215,7 +234,18 @@ docs/                   Progress report, conversation flow, these guides
 
 ## 9. Known limitations
 
-- **ngrok free tier** gives a new public URL each restart, so the tool Server URLs must be updated when it restarts. For continuous operation the backend should be deployed to a persistent host.
-- **Vapi free credits** are limited; heavy call testing will exhaust them.
-- **Vapi's free number is US-based**, so calling it from India incurs international charges. Browser-based testing ("Talk") avoids this entirely and exercises identical logic.
-- The knowledge base uses keyword matching over a curated FAQ set. This is deliberate — it keeps answers accurate and prevents the agent inventing policies — but it only answers what has been written into it.
+Everything solvable for free has been solved. What remains needs a paid service
+or business registration.
+
+- **Vapi call credits.** The free allowance covers development and demos;
+  sustained real call volume needs a paid plan.
+- **Indian phone numbers.** TRAI requires business KYC before any provider will
+  issue one, so a dialable Indian number needs a paid SIP trunk. The free
+  workarounds — the `/demo` page and a SIP address — both work from India at no
+  cost, they just aren't a phone number.
+- **Live transfer needs a real call.** Transfer works on any phone or SIP call,
+  but not from the browser demo, since a browser tab has no line to bridge.
+
+Previously listed here and now resolved: the database no longer resets on
+redeploy (Postgres), and the knowledge base now matches natural phrasings rather
+than literal keywords.

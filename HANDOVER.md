@@ -42,6 +42,7 @@ Sheet without changing any code.
 | **Slack** | Team alerts | Free |
 | **Gmail** | Sends caller confirmations | Free |
 | **Google Sheets** | Acts as the CRM | Free |
+| **Neon** or **Supabase** | Postgres database, so records survive redeploys | Free |
 
 ---
 
@@ -73,7 +74,21 @@ Fork or clone the repository into your own GitHub account.
    - `GOOGLE_CALENDAR_ID`, `TIMEZONE`
 5. Wait for the deploy, then check `https://<your-app>.onrender.com/health`
 
-### 3.4 Vapi
+### 3.4 Database
+
+Render's free tier wipes its filesystem on every redeploy, so the records need
+to live outside it.
+
+1. Sign up free at neon.tech (or supabase.com) and create a project
+2. Copy the connection string — it looks like
+   `postgresql://user:password@host/dbname`
+3. Add it to Render → Environment as `DATABASE_URL`, and to your local `.env`
+
+The tables are created automatically on first start. Leave `DATABASE_URL` blank
+and it falls back to a local SQLite file, which is fine for development but
+loses data on a hosted redeploy.
+
+### 3.5 Vapi
 
 1. vapi.ai → create an account → Dashboard → **API Keys** → copy the private key
 2. Locally: `cp .env.example .env`, then fill in `VAPI_API_KEY`
@@ -96,7 +111,7 @@ python3 setup_vapi_sip.py             # optional: a SIP address for testing
 5. In the Vapi dashboard: give the assistant a phone number
    (Phone Numbers → Create Phone Number → Free Vapi Number → assign to the assistant)
 
-### 3.5 Notifications and CRM
+### 3.6 Notifications and CRM
 
 Add each of these to `.env` **and** to Render's environment:
 
@@ -114,7 +129,7 @@ Verify everything actually sends:
 python3 test_integrations.py --send
 ```
 
-### 3.6 Scheduling and uptime
+### 3.7 Scheduling and uptime
 
 Render's free tier sleeps after 15 minutes idle, and a cold start takes long
 enough to fail a live call. At cron-job.org, create three jobs:
@@ -170,7 +185,7 @@ agent from a browser — no phone number or account needed. It requires
 Caller ──▶ Vapi assistant ──▶ tool call ──▶ Render backend
                 │                              │
                 │                              ├─▶ Google Calendar   (book / move / cancel)
-                │                              ├─▶ SQLite            (leads, tickets, summaries)
+                │                              ├─▶ Postgres          (leads, tickets, summaries)
                 │                              ├─▶ Slack             (team alerts)
                 │                              ├─▶ Gmail             (caller confirmations)
                 │                              └─▶ CRM / automation  (webhooks)
@@ -184,7 +199,7 @@ cron-job.org ──▶ /tasks/reminders, /tasks/followups ──▶ outbound cal
 |---|---|
 | `app/main.py` | Application entry point |
 | `app/config.py` | All settings, from environment variables |
-| `app/database.py` | SQLite storage and schema migrations |
+| `app/database.py` | Storage (Postgres or SQLite) and schema migrations |
 | `app/calendar_service.py` | Google Calendar availability and events |
 | `app/business_hours.py` | Open/closed logic |
 | `app/qualification.py` | Lead scoring |
