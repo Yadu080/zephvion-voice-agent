@@ -14,6 +14,7 @@ was tuned in the dashboard. Run setup_vapi_tools.py first so the tools exist.
 """
 
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
@@ -33,6 +34,13 @@ SERVER_URL = "https://zephvion-voice-agent.onrender.com/webhooks/vapi"
 ASSISTANT_NAME = "Riley — Wellness Partners Receptionist"
 FIRST_MESSAGE = ("Thank you for calling Wellness Partners. This is Riley, "
                  "your scheduling assistant. How may I help you today?")
+
+# "multilingual-auto" matches the voice to whatever language the caller speaks.
+# For a fixed Indian-English voice instead, set VOICE_ID=en-IN-NeerjaNeural
+# (or en-IN-PrabhatNeural) — but that stops the voice switching per language.
+VOICE_PROVIDER = os.environ.get("VOICE_PROVIDER", "azure")
+VOICE_ID = os.environ.get("VOICE_ID", "multilingual-auto")
+DEFAULT_MODEL = os.environ.get("VAPI_MODEL", "gpt-4.1")
 
 # Tools this assistant should have attached, by function name.
 TOOL_NAMES = [
@@ -84,19 +92,74 @@ def resolve_tool_ids(api_key):
     return ids, missing
 
 
-def build_payload(system_prompt, tool_ids):
-    return {
-        "name": ASSISTANT_NAME,
-        "firstMessage": FIRST_MESSAGE,
+def existing_tool_ids(api_key, assistant_id):
+    """Tool IDs already on the assistant — so an update doesn't drop tools that
+    were added in the dashboard (e.g. a Transfer Call tool)."""
+    if not assistant_id:
+        return []
+    try:
+        assistant = _request("GET", f"{ASSISTANT_API}/{assistant_id}", api_key)
+    except Exception as exc:
+        print(f"[warning] Could not read existing assistant ({exc}); "
+              "its dashboard-added tools may be dropped.")
+        return []
+    return (assistant.get("model") or {}).get("toolIds") or []
+
+
+def multilingual_voice(current_voice):
+    """Keep whatever voice is already chosen, but let it speak other languages.
+
+    Vapi's own voices support automatic language selection via version 2, so a
+    deliberately-chosen voice (e.g. an Indian one) isn't thrown away just to
+    enable multilingual.
+    """
+    provider = (current_voice or {}).get("provider")
+    voice_id = (current_voice or {}).get("voiceId")
+
+    if provider == "vapi" and voice_id:
+        return {"provider": "vapi", "voiceId": voice_id, "version": 2, "language": "auto"}
+    if provider and voice_id:
+        # Other providers: keep the voice as-is rather than silently swapping it.
+        return {"provider": provider, "voiceId": voice_id}
+    return {"provider": VOICE_PROVIDER, "voiceId": VOICE_ID}
+
+
+def build_payload(system_prompt, tool_ids, current=None):
+    """Change only what needs changing; carry everything else forward."""
+    current = current or {}
+    current_model = current.get("model") or {}
+
+    payload = {
+        "firstMessage": current.get("firstMessage") or FIRST_MESSAGE,
         "model": {
-            "provider": "openai",
-            "model": "gpt-4o",
+            "provider": current_model.get("provider", "openai"),
+            "model": current_model.get("model", DEFAULT_MODEL),
             "messages": [{"role": "system", "content": system_prompt}],
             "toolIds": tool_ids,
         },
-        "server": {"url": SERVER_URL},
-        "serverMessages": ["end-of-call-report"],
+        # Deepgram with language "multi" detects the caller's language
+        # automatically instead of assuming English.
+        "transcriber": {
+            "provider": "deepgram",
+            "model": "nova-2",
+            "language": "multi",
+        },
+        "voice": multilingual_voice(current.get("voice")),
     }
+
+    if not current:
+        payload["name"] = ASSISTANT_NAME
+
+    # Keep existing server config; only ensure end-of-call-report is included.
+    server_url = (current.get("server") or {}).get("url") or SERVER_URL
+    payload["server"] = {"url": server_url}
+
+    messages = list(current.get("serverMessages") or [])
+    if "end-of-call-report" not in messages:
+        messages.append("end-of-call-report")
+    payload["serverMessages"] = messages or ["end-of-call-report"]
+
+    return payload
 
 
 def main():
@@ -121,14 +184,37 @@ def main():
         if apply_changes:
             return
 
-    system_prompt = load_system_prompt()
-    payload = build_payload(system_prompt, tool_ids)
+    current = {}
+    preserved = []
+    if update_existing and assistant_id:
+        try:
+            current = _request("GET", f"{ASSISTANT_API}/{assistant_id}", api_key)
+        except Exception as exc:
+            print(f"[warning] Could not read the existing assistant ({exc}).")
+        # Keep anything already attached in the dashboard (e.g. Transfer Call).
+        preserved = [tid for tid in ((current.get("model") or {}).get("toolIds") or [])
+                     if tid not in tool_ids]
+        tool_ids = tool_ids + preserved
 
-    print(f"Assistant name : {ASSISTANT_NAME}")
-    print(f"Tools attached : {len(tool_ids)} of {len(TOOL_NAMES)}")
-    print(f"Server URL     : {SERVER_URL}")
-    print(f"Server messages: end-of-call-report (post-call summaries)")
-    print(f"System prompt  : {len(system_prompt)} characters")
+    system_prompt = load_system_prompt()
+    payload = build_payload(system_prompt, tool_ids, current)
+
+    model = payload["model"]
+    voice = payload["voice"]
+    print(f"Assistant      : {current.get('name') or ASSISTANT_NAME}")
+    print(f"Model          : {model['provider']} {model['model']}"
+          + (" (kept)" if current else " (default)"))
+    print(f"Tools attached : {len(tool_ids)} "
+          f"({len(TOOL_NAMES)} from this repo"
+          + (f" + {len(preserved)} kept from the dashboard" if preserved else "")
+          + ")")
+    print(f"Transcriber    : deepgram nova-2, language=multi  [CHANGED for multilingual]")
+    print(f"Voice          : {voice['provider']} {voice['voiceId']}"
+          + (" version=2 language=auto  [multilingual enabled, voice kept]"
+             if voice.get("language") == "auto" else ""))
+    print(f"Server URL     : {payload['server']['url']}")
+    print(f"Server messages: {len(payload['serverMessages'])} kept, incl. end-of-call-report")
+    print(f"System prompt  : {len(system_prompt)} characters  [CHANGED]")
 
     if not apply_changes:
         print("\nDry run — nothing was changed.")
