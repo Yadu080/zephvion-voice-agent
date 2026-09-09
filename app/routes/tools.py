@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from fastapi import APIRouter, Request
@@ -74,9 +75,34 @@ def _duration(args):
     return int(args.get("duration_minutes") or config.DEFAULT_APPOINTMENT_MINUTES)
 
 
+def _reject_past_date(date_str: str, time_str: str) -> str | None:
+    """Guard against the model inventing a year and booking in the past.
+
+    Returns an error message for the agent to relay, or None if the date is fine.
+    """
+    try:
+        when = datetime.datetime.fromisoformat(f"{date_str}T{time_str}").replace(
+            tzinfo=config.timezone()
+        )
+    except ValueError:
+        return (f"'{date_str} {time_str}' isn't a valid date and time. Please ask the "
+                "caller to confirm the date, then use YYYY-MM-DD and 24-hour HH:MM.")
+
+    now = datetime.datetime.now(config.timezone())
+    if when < now:
+        return (f"{date_str} at {time_str} is in the past — today is "
+                f"{now.strftime('%A %d %B %Y')}. Ask the caller to confirm the date "
+                "they meant, and book it in the future.")
+    return None
+
+
 # --- Appointments ----------------------------------------------------------
 
 def _check_availability(args: dict) -> str:
+    problem = _reject_past_date(args["date"], args["time"])
+    if problem:
+        return problem
+
     res = calendar_service.check_availability(
         date_str=args["date"],
         time_str=args["time"],
@@ -90,6 +116,10 @@ def _check_availability(args: dict) -> str:
 
 
 def _book_appointment(args: dict) -> str:
+    problem = _reject_past_date(args["date"], args["time"])
+    if problem:
+        return problem
+
     booking = calendar_service.book_appointment(
         patient_name=args["patient_name"],
         callback_number=args["callback_number"],
@@ -129,6 +159,10 @@ def _reschedule_appointment(args: dict) -> str:
     if not existing:
         return (f"I couldn't find an existing appointment for {patient_name} with that "
                 "callback number. Could you double check the name and number?")
+
+    problem = _reject_past_date(args["new_date"], args["new_time"])
+    if problem:
+        return problem
 
     duration_minutes = _duration(args)
     availability = calendar_service.check_availability(
