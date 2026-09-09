@@ -14,6 +14,9 @@ services:
         value: /etc/secrets/service-account.json
       - key: GOOGLE_CALENDAR_ID
         sync: false
+      # Free Postgres (Neon/Supabase) so data survives redeploys
+      - key: DATABASE_URL
+        sync: false
       - key: TIMEZONE
         value: Asia/Kolkata
       # Business identity and hours

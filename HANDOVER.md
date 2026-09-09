@@ -226,25 +226,33 @@ Configured but not yet exercised on a real call:
 
 ## 8. Known limitations
 
-- **The database resets on redeploy.** Render's free tier has an ephemeral
-  filesystem. Google Calendar events, Slack messages and CRM rows are unaffected
-  — they live outside the server — but the local history of leads, tickets and
-  summaries is lost when the service restarts. Moving to a free hosted Postgres
-  (Neon or Supabase) removes this; it is the one change worth making if this goes
-  into real use.
-- **Vapi free credits are limited.** Heavy call testing will exhaust them.
-- **The free Vapi phone number is US-based.** Calling it from India incurs
-  international charges. Use the `/demo` page or a SIP address instead.
-- **The knowledge base is keyword-matched** over a curated FAQ set. This is
-  deliberate — it keeps answers accurate — but it only knows what is written in it.
-- **Indian phone numbers require KYC.** TRAI regulations mean no provider issues
-  Indian numbers without business verification, so a local number needs a paid
-  SIP trunk.
-- **Live transfer needs a real phone call.** Every other capability works from
-  the browser demo page, but bridging a caller to a human requires a telephone
-  line, which a browser tab does not have.
+Everything that could be solved for free has been. What remains is limited by
+paid services or telecom regulation, not by the build.
 
----
+**Genuinely paid-only:**
+
+- **Vapi call credits.** The free allowance covers development and demos, but
+  sustained real-world call volume needs a paid Vapi plan. Nothing else in the
+  stack meters usage this way.
+- **Indian phone numbers.** TRAI regulations require business KYC before any
+  provider will issue an Indian number, so a local landline or mobile number for
+  the agent needs a paid SIP trunk with a verified business. Free workarounds are
+  in place — the browser demo page and a SIP address both work from India at no
+  cost — but a *dialable Indian number* is not obtainable for free.
+
+**Solved (previously limitations):**
+
+- ~~Database resets on redeploy~~ — the storage layer now uses Postgres when
+  `DATABASE_URL` is set, so records survive restarts. A free Neon or Supabase
+  database is enough; it falls back to SQLite for local development.
+- ~~Calling from India costs money~~ — the browser demo page and the free SIP
+  address both work from anywhere at no cost.
+- ~~The knowledge base only matches exact keywords~~ — matching now handles
+  synonyms, plurals and natural phrasings, and still declines confidently when a
+  question is genuinely outside what it knows.
+- ~~Live transfer can't be tested~~ — transfer works on any real call, including
+  a free SIP call from a softphone. Only the browser demo can't do it, since a
+  browser tab has no telephone line to bridge.
 
 ## 9. Verifying the handover worked
 

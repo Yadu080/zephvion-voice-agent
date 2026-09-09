@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.database import get_connection, init_db  # noqa: E402
+from app import database  # noqa: E402
 
 COL_WIDTH = 20
 
@@ -24,49 +24,47 @@ def _print_table(title, rows, columns):
     print("-" * len(header))
 
     for row in rows:
-        keys = row.keys()
         cells = []
         for col in columns:
-            value = row[col] if col in keys else ""
+            value = row.get(col, "")
             cells.append(str(value if value is not None else "")[:COL_WIDTH].ljust(COL_WIDTH))
         print(" | ".join(cells))
 
 
 def main():
-    init_db()
-    conn = get_connection()
+    database.init_db()
+    print(f"(storage: {database.backend_name()})")
 
     _print_table(
         "APPOINTMENTS",
-        conn.execute("SELECT * FROM appointments ORDER BY created_at DESC").fetchall(),
+        database.fetch_all("appointments"),
         ["id", "patient_name", "appointment_type", "start_time", "status"],
     )
 
     _print_table(
         "LEADS / ENQUIRIES",
-        conn.execute("SELECT * FROM leads ORDER BY created_at DESC").fetchall(),
+        database.fetch_all("leads"),
         ["id", "caller_name", "callback_number", "category", "qualification", "reason"],
     )
 
     _print_table(
         "SUPPORT TICKETS",
-        conn.execute("SELECT * FROM support_tickets ORDER BY created_at DESC").fetchall(),
+        database.fetch_all("support_tickets"),
         ["id", "caller_name", "issue", "priority", "status"],
     )
 
     _print_table(
         "CALL SUMMARIES",
-        conn.execute("SELECT * FROM call_summaries ORDER BY created_at DESC").fetchall(),
+        database.fetch_all("call_summaries"),
         ["id", "call_id", "caller_number", "ended_reason", "summary"],
     )
 
     _print_table(
         "FOLLOW-UP QUEUE",
-        conn.execute("SELECT * FROM followups ORDER BY created_at DESC").fetchall(),
+        database.fetch_all("followups"),
         ["id", "contact_name", "phone_number", "purpose", "status"],
     )
 
-    conn.close()
     print()
 
 
