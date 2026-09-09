@@ -25,6 +25,14 @@ async def vapi_webhook(request: Request):
     return {"received": True}
 
 
+# End reasons that mean we never actually spoke to the person, so an
+# outbound follow-up should go back in the queue rather than be closed out.
+UNREACHED_REASONS = (
+    "no-answer", "busy", "voicemail", "customer-did-not-answer",
+    "customer-busy", "failed", "twilio-failed", "vapi-error",
+)
+
+
 def _handle_end_of_call(message: dict) -> None:
     call = message.get("call") or {}
     artifact = message.get("artifact") or {}
@@ -55,4 +63,52 @@ def _handle_end_of_call(message: dict) -> None:
         "summary": summary,
         "ended_reason": ended_reason,
         "duration_seconds": duration,
+    })
+
+    _close_outbound_workflow(message, call, summary, ended_reason)
+
+
+def _close_outbound_workflow(message: dict, call: dict, summary: str,
+                             ended_reason: str | None) -> None:
+    """If this was an outbound call we placed, record the outcome against the
+    follow-up it came from and trigger the appropriate next action."""
+    metadata = call.get("metadata") or message.get("metadata") or {}
+    followup_id = metadata.get("followup_id")
+    if not followup_id:
+        return
+
+    followup = database.get_followup(followup_id)
+    if not followup:
+        return
+
+    reason = (ended_reason or "").lower()
+    unreached = any(marker in reason for marker in UNREACHED_REASONS)
+
+    if unreached:
+        database.requeue_followup(
+            followup_id, f"Not reached ({ended_reason}) — queued to try again"
+        )
+        notifications.notify_slack(
+            f"📞 Follow-up to {followup['contact_name']} didn't connect "
+            f"({ended_reason}) — back in the queue."
+        )
+        notifications.trigger_automation("followup.unreached", {
+            "followup_id": followup_id,
+            "contact_name": followup["contact_name"],
+            "phone_number": followup["phone_number"],
+            "ended_reason": ended_reason,
+        })
+        return
+
+    outcome = summary or f"Call completed ({ended_reason})"
+    database.complete_followup(followup_id, outcome)
+    notifications.notify_slack(
+        f"✅ Follow-up completed with {followup['contact_name']}: {outcome[:250]}"
+    )
+    notifications.trigger_automation("followup.completed", {
+        "followup_id": followup_id,
+        "contact_name": followup["contact_name"],
+        "phone_number": followup["phone_number"],
+        "purpose": followup["purpose"],
+        "outcome": outcome,
     })

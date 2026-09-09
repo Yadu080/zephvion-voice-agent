@@ -233,3 +233,29 @@ def complete_followup(followup_id, outcome):
     )
     conn.commit()
     conn.close()
+
+
+def mark_followup_calling(followup_id):
+    """Call placed but not yet finished — the end-of-call report closes it out."""
+    conn = get_connection()
+    conn.execute("UPDATE followups SET status = 'calling' WHERE id = ?", (followup_id,))
+    conn.commit()
+    conn.close()
+
+
+def requeue_followup(followup_id, note):
+    """Call didn't reach the person — put it back in the queue to retry."""
+    conn = get_connection()
+    conn.execute(
+        "UPDATE followups SET status = 'pending', outcome = ? WHERE id = ?",
+        (note, followup_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_followup(followup_id):
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM followups WHERE id = ?", (followup_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None

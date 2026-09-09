@@ -22,9 +22,31 @@ from app import config, database  # noqa: E402  (must load env first)
 
 VAPI_CALL_ENDPOINT = "https://api.vapi.ai/call"
 
+DEFAULT_OUTBOUND_GREETING = (
+    "Hello, this is Riley calling from Wellness Partners. "
+    "Do you have a quick moment?"
+)
 
-def place_call(phone_number: str, context: str) -> dict:
-    """Ask Vapi to dial a number with the assistant, passing call context."""
+REMINDER_GREETING = (
+    "Hello, this is Riley calling from Wellness Partners about your upcoming "
+    "appointment. Is now a good time?"
+)
+
+FOLLOWUP_GREETING = (
+    "Hello, this is Riley calling from Wellness Partners to follow up on your "
+    "recent enquiry. Is now a good time?"
+)
+
+
+def place_call(phone_number: str, context: str,
+               first_message: str | None = None,
+               metadata: dict | None = None) -> dict:
+    """Ask Vapi to dial a number with the assistant, passing call context.
+
+    `context` fills {{call_context}} in the system prompt so the agent knows it
+    is the one calling (and why). `metadata` is echoed back on the end-of-call
+    report, which is how outbound results get linked to their follow-up record.
+    """
     api_key = config.vapi_api_key()
     assistant_id = config.vapi_assistant_id()
     phone_number_id = config.vapi_phone_number_id()
@@ -44,7 +66,11 @@ def place_call(phone_number: str, context: str) -> dict:
         "customer": {"number": phone_number},
         "assistantOverrides": {
             "variableValues": {"call_context": context},
+            # Without this the agent would open with the inbound greeting
+            # ("Thank you for calling...") on a call it placed itself.
+            "firstMessage": first_message or DEFAULT_OUTBOUND_GREETING,
         },
+        "metadata": metadata or {},
     }
 
     req = urllib.request.Request(
@@ -88,21 +114,35 @@ def appointment_reminders(days_ahead: int = 1) -> None:
         context = (f"Reminder call for {row['patient_name']}: {row['appointment_type']} "
                    f"appointment on {row['start_time']}. Confirm they can still attend, "
                    "and offer to reschedule if not.")
-        place_call(row["callback_number"], context)
+        place_call(
+            row["callback_number"], context,
+            first_message=REMINDER_GREETING,
+            metadata={"workflow": "reminder", "appointment_id": row["id"]},
+        )
 
 
 def work_followup_queue() -> None:
-    """Call everyone in the pending follow-up queue."""
+    """Call everyone in the pending follow-up queue.
+
+    Calls are marked 'calling' here, not 'completed' — the end-of-call webhook
+    records the actual outcome once the conversation finishes.
+    """
     pending = database.pending_followups()
     if not pending:
         print("No pending follow-ups.")
         return
 
     for followup in pending:
-        context = f"Follow-up call for {followup['contact_name']}: {followup['purpose']}"
-        result = place_call(followup["phone_number"], context)
+        context = (f"Follow-up call for {followup['contact_name']}: {followup['purpose']}. "
+                   "Find out where they stand, answer any questions, and book them in "
+                   "if they are ready.")
+        result = place_call(
+            followup["phone_number"], context,
+            first_message=FOLLOWUP_GREETING,
+            metadata={"workflow": "followup", "followup_id": followup["id"]},
+        )
         if result["ok"]:
-            database.complete_followup(followup["id"], "call placed")
+            database.mark_followup_calling(followup["id"])
 
 
 def main():
