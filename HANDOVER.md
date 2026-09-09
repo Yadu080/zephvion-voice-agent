@@ -10,27 +10,74 @@ in about an hour, and nothing needs to be rebuilt.
 
 ## 1. What you are receiving
 
-An AI voice agent that answers calls 24/7 and:
+A working AI voice agent, deployed and running, plus everything needed to run it
+yourself: the source code, the setup scripts that rebuild it in your own
+accounts, the conversation design, and this guide.
 
-- books, reschedules and cancels appointments on a real Google Calendar
-- answers questions about the business from a knowledge base
-- captures enquiries, asks qualifying questions, and scores leads hot / warm / cold
-- raises support tickets with priority levels
-- transfers callers to a human, briefing them on the conversation first
-- adapts its behaviour outside business hours
-- produces a summary, transcript and outcome for every call
-- alerts the team in Slack, emails confirmations to callers, and syncs records to a CRM
-- places outbound calls for appointment reminders and follow-ups
-- speaks nine languages, detected automatically
+### Against the original specification
 
-**Running cost: nothing.** Every service is on a free tier. The only paid item
-in the original specification was GoHighLevel; the CRM integration is a generic
-webhook instead, so it works with GoHighLevel, HubSpot's free tier, or a Google
-Sheet without changing any code.
+| Specification | Status |
+|---|---|
+| AI Call Answering Agent | Built |
+| AI Appointment Booking (check, book, reschedule, cancel) | Built, on a live Google Calendar |
+| AI Lead Qualification Agent | Built, with hot/warm/cold scoring |
+| 24/7 Virtual Receptionist | Built, with out-of-hours behaviour |
+| AI Follow-Up Agent | Built, including recording the outcome of each call |
+| AI Outbound Calling Workflows | Built: reminders, confirmations, re-engagement, follow-ups, qualification |
+| Natural, human-like conversations | Built |
+| Real-time intent understanding | Built |
+| Custom conversation flows | Built, six distinct paths |
+| Incoming and outbound calls | Both |
+| Smart routing and human escalation | Built, warm transfer with a spoken summary |
+| CRM updates during or after calls | Built, via webhook |
+| Automated follow-ups | Built, on a schedule |
+| Call summaries and structured data | Built, stored per call |
+| 24/7 availability | Built |
+| Custom knowledge base | Built |
+| Multilingual conversation design | Built, nine languages, auto-detected |
+
+**Two deliberate substitutions**, both agreed during the build:
+
+- **Twilio → Vapi's own telephony.** Twilio's trial blocked number configuration
+  behind an upgrade, and trial numbers could not be linked. Vapi provides the
+  telephony directly, so the layer is still there — just not Twilio's.
+- **GoHighLevel → any webhook-capable CRM.** GoHighLevel has no free tier
+  (~$97/month). The CRM sync sends a generic webhook, so it works with
+  GoHighLevel, HubSpot's free tier, or a Google Sheet by changing one setting.
+  No code changes needed to switch.
+
+**One partial:** the specification lists *surveys* among outbound use cases.
+There is no dedicated survey workflow, but outbound calls accept an arbitrary
+purpose, so a survey can be run with
+`python3 outbound_calls.py call +91XXXXXXXXXX "ask them to rate their visit"`.
+Responses land in the call summary rather than as structured survey data.
+
+**Running cost: nothing.** Every service runs on a free tier.
 
 ---
 
-## 2. Accounts you will need
+## 2. What is included, and what is not
+
+The repository is the deliverable. It contains:
+
+- the complete backend (`app/`)
+- the agent's instructions (`prompts/system_prompt.md`)
+- the business knowledge base (`knowledge_base.json`)
+- scripts that recreate the agent in your Vapi account (`setup_vapi_*.py`)
+- operational tools (`view_data.py`, `test_integrations.py`, `outbound_calls.py`)
+- deployment configuration (`render.yaml`, `.python-version`)
+- a blank settings template (`.env.example`)
+- documentation (`README.md`, this file, `docs/`)
+
+It deliberately does **not** contain any credentials. There is no `.env`, no
+Google service-account key and no database file in the repository, because those
+are secrets belonging to whoever runs the system. You create your own during
+setup, following section 4. Nothing else is missing — no part of the build is
+withheld or hard-coded to the original accounts.
+
+---
+
+## 3. Accounts you will need
 
 | Service | Purpose | Cost |
 |---|---|---|
@@ -46,13 +93,13 @@ Sheet without changing any code.
 
 ---
 
-## 3. Taking ownership — step by step
+## 4. Taking ownership — step by step
 
-### 3.1 Get the code
+### 4.1 Get the code
 
 Fork or clone the repository into your own GitHub account.
 
-### 3.2 Google Calendar
+### 4.2 Google Calendar
 
 1. console.cloud.google.com → create a project
 2. APIs & Services → Library → enable **Google Calendar API**
@@ -63,18 +110,18 @@ Fork or clone the repository into your own GitHub account.
    JSON file) with **"Make changes to events"**
 6. Same page → **Integrate calendar** → copy the **Calendar ID**
 
-### 3.3 Deploy the backend
+### 4.3 Deploy the backend
 
 1. render.com → New → **Web Service** → connect the repo
 2. Settings are read from `render.yaml`; confirm the plan is **Free**
-3. Environment → **Secret Files** → add `service-account.json` (paste the JSON from 3.2)
+3. Environment → **Secret Files** → add `service-account.json` (paste the JSON from 4.2)
 4. Environment → **Environment Variables** → add everything from
    `.env.example`, at minimum:
    - `GOOGLE_SERVICE_ACCOUNT_FILE` = `/etc/secrets/service-account.json`
    - `GOOGLE_CALENDAR_ID`, `TIMEZONE`
 5. Wait for the deploy, then check `https://<your-app>.onrender.com/health`
 
-### 3.4 Database
+### 4.4 Database
 
 Render's free tier wipes its filesystem on every redeploy, so the records need
 to live outside it.
@@ -88,7 +135,7 @@ The tables are created automatically on first start. Leave `DATABASE_URL` blank
 and it falls back to a local SQLite file, which is fine for development but
 loses data on a hosted redeploy.
 
-### 3.5 Vapi
+### 4.5 Vapi
 
 1. vapi.ai → create an account → Dashboard → **API Keys** → copy the private key
 2. Locally: `cp .env.example .env`, then fill in `VAPI_API_KEY`
@@ -111,7 +158,7 @@ python3 setup_vapi_sip.py             # optional: a SIP address for testing
 5. In the Vapi dashboard: give the assistant a phone number
    (Phone Numbers → Create Phone Number → Free Vapi Number → assign to the assistant)
 
-### 3.6 Notifications and CRM
+### 4.6 Notifications and CRM
 
 Add each of these to `.env` **and** to Render's environment:
 
@@ -129,7 +176,7 @@ Verify everything actually sends:
 python3 test_integrations.py --send
 ```
 
-### 3.7 Scheduling and uptime
+### 4.7 Scheduling and uptime
 
 Render's free tier sleeps after 15 minutes idle, and a cold start takes long
 enough to fail a live call. At cron-job.org, create three jobs:
@@ -151,7 +198,7 @@ stay disabled entirely until `TASKS_TOKEN` is set, since placing calls costs cre
 
 ---
 
-## 4. Adapting it to a different business
+## 5. Adapting it to a different business
 
 No code changes required:
 
@@ -164,7 +211,7 @@ No code changes required:
 
 ---
 
-## 5. Day-to-day operation
+## 6. Day-to-day operation
 
 ```bash
 python3 view_data.py                  # appointments, leads, tickets, summaries, queue
@@ -179,7 +226,48 @@ agent from a browser — no phone number or account needed. It requires
 
 ---
 
-## 6. How it fits together
+## 7. How the agent handles a call
+
+The agent works out which of six paths a caller needs, then follows it. The full
+conversation design is in `prompts/system_prompt.md`; this is the shape of it.
+
+**Booking.** Asks what the appointment is for, whether they are a new or
+returning patient, and collects name, phone and (optionally) email. It checks
+the real calendar before offering a slot, and if the requested time is taken it
+offers alternatives from the same day. It confirms the details back, books, and
+only then tells the caller it is done. Rescheduling and cancelling find the
+existing appointment from the name and number — tolerating a phone number given
+in a different format than at booking.
+
+**Questions.** Anything factual — hours, location, insurance, costs, what to
+bring, policies, services, appointment lengths, registration — is answered from
+the knowledge base rather than from the model's own memory, so the agent cannot
+invent a policy or a price. If the knowledge base has no confident answer it
+says so and offers to take a message.
+
+**New enquiries.** Qualifying questions are asked conversationally, not as an
+interrogation: how soon they want to proceed, whether they are ready to book or
+still comparing, and how they intend to pay. Those answers produce a score and a
+hot / warm / cold band. Hot leads are flagged to the caller as priority and
+emailed to the sales team immediately.
+
+**Problems and complaints.** Raises a numbered support ticket with a priority,
+and reads the number back to the caller.
+
+**Wanting a human.** Transfers the live call, speaking a two-sentence summary of
+the conversation to whoever picks up first, so the caller does not have to start
+again. If a transfer is not possible, it takes a callback request instead.
+
+**Callbacks.** Adds the caller to a follow-up queue that outbound calling works
+through automatically.
+
+Throughout, the agent is instructed never to claim something is booked, moved,
+cancelled, saved or ticketed unless the underlying operation actually succeeded
+— if a step fails it apologises and takes details instead of pretending.
+
+---
+
+## 8. How it fits together
 
 ```
 Caller ──▶ Vapi assistant ──▶ tool call ──▶ Render backend
@@ -213,7 +301,7 @@ cron-job.org ──▶ /tasks/reminders, /tasks/followups ──▶ outbound cal
 
 ---
 
-## 7. What has and hasn't been tested
+## 9. What has and hasn't been tested
 
 Verified working:
 
@@ -239,7 +327,7 @@ Configured but not yet exercised on a real call:
 - **Outbound calling** — configured and the scheduling endpoints are tested, but
   no outbound call has actually been placed
 
-## 8. Known limitations
+## 10. Known limitations
 
 Everything that could be solved for free has been. What remains is limited by
 paid services or telecom regulation, not by the build.
@@ -269,7 +357,7 @@ paid services or telecom regulation, not by the build.
   a free SIP call from a softphone. Only the browser demo can't do it, since a
   browser tab has no telephone line to bridge.
 
-## 9. Verifying the handover worked
+## 11. Verifying the handover worked
 
 Make one call through `/demo` and confirm the whole pipeline:
 
@@ -281,3 +369,56 @@ Make one call through `/demo` and confirm the whole pipeline:
 6. Run `python3 view_data.py` and confirm the record is stored
 
 If all six pass, the system is fully yours and working.
+
+---
+
+## 12. What it costs to run
+
+Nothing, at the volumes this is built for.
+
+| Service | Free allowance | What happens beyond it |
+|---|---|---|
+| Vapi | Trial credits | Call minutes need a paid plan; this is the first thing to hit |
+| Render | 750 hours/month | Enough for one always-on service |
+| Neon Postgres | 0.5 GB storage | Far beyond what call records need |
+| Google Calendar API | 1,000,000 requests/day | Not reachable in practice |
+| Gmail SMTP | 500 emails/day | Enough for hundreds of bookings |
+| Slack webhooks | Unlimited | — |
+| Google Sheets | 10M cells | Years of records |
+| cron-job.org | 50 jobs | Three are used |
+
+The practical limit is Vapi call credits. Everything else has headroom well
+beyond normal business use.
+
+---
+
+## 13. Security notes
+
+- **The repository contains no credentials.** `.env`, the Google service-account
+  key and the database file are excluded from version control by design.
+- **Never send a zip of a working folder.** A zip ignores those exclusions and
+  would include live keys. Share the repository, or a zip downloaded from GitHub.
+- **The demo page uses the Vapi *public* key**, which is safe in a browser. The
+  private key stays on the server.
+- **Scheduled task endpoints require a token** and are disabled entirely if that
+  token is not set, since they can place calls that cost money.
+- **Rotate anything that leaks.** Vapi keys, the Gmail app password, the Slack
+  webhook and the database URL can all be regenerated from their dashboards.
+
+---
+
+## 14. If something goes wrong
+
+| Symptom | Likely cause |
+|---|---|
+| Agent answers but bookings fail | `GOOGLE_CALENDAR_ID` or the service-account secret file is missing on the server, or the calendar was never shared with the service account |
+| Tool calls return errors | The tools' Server URL still points somewhere old; re-run `setup_vapi_tools.py` after updating `SERVER_URL` |
+| First call of the day fails, later ones work | The uptime ping is not running; the host slept and the first request hit a cold start |
+| No confirmation emails or Slack messages | Those settings exist locally but were never added to the server's environment |
+| Records disappear after a deploy | `DATABASE_URL` is not set on the server, so it fell back to a local file |
+| Transfer fails on a browser call | Expected — transfers need a real phone or SIP call |
+| Agent books the wrong year | The date variable was removed from the system prompt; it needs the current date |
+
+`python3 test_integrations.py --send` will tell you which integrations are
+actually working, and `python3 view_data.py` shows what has been captured,
+including which database it is reading from.
