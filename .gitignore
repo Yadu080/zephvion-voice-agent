@@ -5,3 +5,12 @@ __pycache__/
 .DS_Store
 service-account.json
 data.db
+
+# Local editor config
+.claude/
+
+# Internship-specific and personal working files (kept locally, not part of the product)
+docs/build-notes.md
+docs/progress-log.md
+docs/Zephvion AI Voice Agent - Progress Report.*
+Zephvion AI Voice Agent Portfolio.docx

@@ -198,7 +198,33 @@ cron-job.org ──▶ /tasks/reminders, /tasks/followups ──▶ outbound cal
 
 ---
 
-## 7. Known limitations
+## 7. What has and hasn't been tested
+
+Verified working:
+
+- Booking, rescheduling and cancelling against a live Google Calendar
+- Lead capture with hot/warm/cold scoring
+- Knowledge base answering known questions and correctly declining unknown ones
+- Support ticket creation
+- Business-hours detection
+- Post-call summaries stored from the end-of-call report
+- The follow-up loop: a placed call moves to "calling", an unanswered call goes
+  back in the queue, an answered one closes with the conversation outcome
+- Slack, email, sales alerts, CRM sync and automation webhooks all sending
+- All nine tools responding correctly on the live deployment
+
+Configured but not yet exercised on a real call:
+
+- **Multilingual** — transcriber and voice are set for automatic language
+  detection, and the prompt lists the nine languages, but no call has been made
+  in a language other than English
+- **Live transfer** — the tool is attached and correctly configured for a warm
+  handoff, but transfers cannot work from browser calls (there is no phone line
+  to bridge), so this needs a real phone call to verify
+- **Outbound calling** — configured and the scheduling endpoints are tested, but
+  no outbound call has actually been placed
+
+## 8. Known limitations
 
 - **The database resets on redeploy.** Render's free tier has an ephemeral
   filesystem. Google Calendar events, Slack messages and CRM rows are unaffected
@@ -214,10 +240,13 @@ cron-job.org ──▶ /tasks/reminders, /tasks/followups ──▶ outbound cal
 - **Indian phone numbers require KYC.** TRAI regulations mean no provider issues
   Indian numbers without business verification, so a local number needs a paid
   SIP trunk.
+- **Live transfer needs a real phone call.** Every other capability works from
+  the browser demo page, but bridging a caller to a human requires a telephone
+  line, which a browser tab does not have.
 
 ---
 
-## 8. Verifying the handover worked
+## 9. Verifying the handover worked
 
 Make one call through `/demo` and confirm the whole pipeline:
 
