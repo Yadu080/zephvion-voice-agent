@@ -1,0 +1,350 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "check_availability",
+      "description": "Check whether a specific appointment date and time is free before offering it to the caller. Returns alternative times if the requested slot is taken.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Appointment date in YYYY-MM-DD format"
+          },
+          "time": {
+            "type": "string",
+            "description": "Appointment time in 24-hour HH:MM format"
+          },
+          "duration_minutes": {
+            "type": "number",
+            "description": "Length in minutes, defaults to 30"
+          }
+        },
+        "required": [
+          "date",
+          "time"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "book_appointment",
+      "description": "Book a confirmed appointment on the clinic calendar. Only call this after the caller has confirmed the date and time.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_name": {
+            "type": "string",
+            "description": "Patient's full name"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Phone number to reach the patient, digits only"
+          },
+          "appointment_type": {
+            "type": "string",
+            "description": "Type of appointment or reason for the visit"
+          },
+          "date": {
+            "type": "string",
+            "description": "Appointment date in YYYY-MM-DD format"
+          },
+          "time": {
+            "type": "string",
+            "description": "Appointment time in 24-hour HH:MM format"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address for the written confirmation, if the caller gives one"
+          },
+          "duration_minutes": {
+            "type": "number",
+            "description": "Length in minutes, defaults to 30"
+          }
+        },
+        "required": [
+          "patient_name",
+          "callback_number",
+          "appointment_type",
+          "date",
+          "time"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "reschedule_appointment",
+      "description": "Move an existing appointment to a new date and time. Finds the caller's current appointment from their name and callback number.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_name": {
+            "type": "string",
+            "description": "Patient's full name"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Phone number the appointment was booked under, digits only"
+          },
+          "new_date": {
+            "type": "string",
+            "description": "New date in YYYY-MM-DD format"
+          },
+          "new_time": {
+            "type": "string",
+            "description": "New time in 24-hour HH:MM format"
+          },
+          "duration_minutes": {
+            "type": "number",
+            "description": "Length in minutes, defaults to 30"
+          }
+        },
+        "required": [
+          "patient_name",
+          "callback_number",
+          "new_date",
+          "new_time"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "cancel_appointment",
+      "description": "Cancel an existing appointment and remove it from the clinic calendar.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_name": {
+            "type": "string",
+            "description": "Patient's full name"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Phone number the appointment was booked under, digits only"
+          }
+        },
+        "required": [
+          "patient_name",
+          "callback_number"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "capture_lead",
+      "description": "Record a caller's details for follow-up. Use for general enquiries and for callers who want a human to call them back. Include the qualifying answers whenever the caller has given them.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "caller_name": {
+            "type": "string",
+            "description": "Caller's full name"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Phone number to reach the caller, digits only"
+          },
+          "category": {
+            "type": "string",
+            "description": "Type of record",
+            "enum": [
+              "enquiry",
+              "escalation"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Short reason for the call"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Any extra context from the conversation"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address, if the caller gives one"
+          },
+          "timeframe": {
+            "type": "string",
+            "description": "How soon the caller wants to proceed",
+            "enum": [
+              "immediately",
+              "this_week",
+              "this_month",
+              "few_months",
+              "just_researching"
+            ]
+          },
+          "intent": {
+            "type": "string",
+            "description": "How ready the caller is to commit",
+            "enum": [
+              "ready_to_book",
+              "comparing_options",
+              "wants_information",
+              "general_enquiry"
+            ]
+          },
+          "budget": {
+            "type": "string",
+            "description": "How the caller intends to pay",
+            "enum": [
+              "insured",
+              "self_pay_confirmed",
+              "unsure",
+              "no_budget"
+            ]
+          }
+        },
+        "required": [
+          "caller_name",
+          "callback_number",
+          "category",
+          "reason"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "answer_question",
+      "description": "Answer a factual question about the clinic — opening hours, location and parking, insurance accepted, costs, what to bring, cancellation policy, services offered, appointment lengths, or new patient registration. Use this instead of answering from memory so the information is always correct.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The caller's question, in their own words"
+          }
+        },
+        "required": [
+          "question"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "create_support_ticket",
+      "description": "Raise a support ticket when a caller reports a problem, complaint or billing issue that needs the team to investigate. Returns a ticket number to give the caller.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "caller_name": {
+            "type": "string",
+            "description": "Caller's full name"
+          },
+          "callback_number": {
+            "type": "string",
+            "description": "Phone number to reach the caller, digits only"
+          },
+          "issue": {
+            "type": "string",
+            "description": "Clear description of the problem the caller reported"
+          },
+          "priority": {
+            "type": "string",
+            "description": "How urgent the issue is. Use high for billing errors, time-sensitive problems, or an upset caller.",
+            "enum": [
+              "low",
+              "normal",
+              "high"
+            ]
+          }
+        },
+        "required": [
+          "caller_name",
+          "callback_number",
+          "issue"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "check_business_hours",
+      "description": "Check whether the clinic is currently open, and when it next reopens. Use when the caller asks if you are open, or mentions calling late or early.",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "schedule_followup",
+      "description": "Schedule a follow-up call back to the caller for a later time, when they ask to be contacted again about something.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "contact_name": {
+            "type": "string",
+            "description": "Name of the person to call back"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "Number to call back on, digits only"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "What the follow-up call should be about"
+          }
+        },
+        "required": [
+          "contact_name",
+          "phone_number",
+          "purpose"
+        ]
+      }
+    },
+    "server": {
+      "url": "https://zephvion-voice-agent.onrender.com/tools/webhook",
+      "timeoutSeconds": 20
+    }
+  }
+]
